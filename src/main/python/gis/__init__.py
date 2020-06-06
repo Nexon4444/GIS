@@ -1,10 +1,11 @@
 import numpy as np
 import queue
 import collections
-b = np.loadtxt(r'data.csv', dtype=str, delimiter=',', skiprows=1, usecols=np.r_[0:2])
+
+b = np.loadtxt(r'data.csv', dtype=str, delimiter='|', skiprows=1, usecols=np.r_[0:2])
 data = []
 for row in b:
-    data.append((row[0].replace('"', ''), row[1].replace('"', '').split("; ")))
+    data.append((row[0], row[1].split("; ")))
 
 publication_degrees = {}
 
@@ -136,6 +137,38 @@ class Graph:
 
         return visited
 
+    def clasterization_factor(self):
+        sum = 0
+        for node in self.nodes:
+            sum = sum + self.clasterization_for_node(self.nodes[node])
+        return sum / self.count_vertices()
+
+    def clasterization_for_node(self, node):
+        if node.number_of_neighbours() < 2:
+            return 0
+        neighbours_connections = 0
+        for neighbour1 in node.neighbours:
+            for neighbour2 in node.neighbours:
+                if self.nodes[neighbour1.label].neighbours.__contains__(self.nodes[neighbour2.label]):
+                    neighbours_connections = neighbours_connections + 1
+        return neighbours_connections / (node.number_of_neighbours() * (node.number_of_neighbours() - 1))
+
+    def clasterization_factor_4(self):
+        sum = 0
+        count_nodes = 0
+        for node in self.nodes:
+            if self.nodes[node].number_of_neighbours() >= 4:
+                count_nodes = count_nodes + 1
+                sum = sum + self.clasterization_for_node(self.nodes[node])
+        return sum / count_nodes
+
+    def clasterization_factor_for(self, labels):
+        if len(labels) == 0:
+            return 0
+        sum = 0
+        for label in labels:
+            sum = sum + self.clasterization_for_node(self.nodes[label])
+        return sum / len(labels)
 
 
 class Node:
@@ -169,3 +202,16 @@ print(median)
 subgraphs = graph.count_inconsistent_subgraphs()
 print("Number of subgraphs")
 print(subgraphs)
+
+clasterization = graph.clasterization_factor()
+print("Clasterization factor")
+print(clasterization)
+
+clasterization4 = graph.clasterization_factor_4()
+print("Clasterization factor for vertices with degree at least 4")
+print(clasterization4)
+
+top25 = list(ordered_authors_degrees.keys())[-25:]
+clasterization_top25 = graph.clasterization_factor_for(top25)
+print("Clasterization factor for top 25 authors")
+print(clasterization_top25)
