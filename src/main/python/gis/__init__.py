@@ -1,4 +1,5 @@
 import numpy as np
+import queue
 import collections
 b = np.loadtxt(r'data.csv', dtype=str, delimiter=',', skiprows=1, usecols=np.r_[0:2])
 data = []
@@ -65,3 +66,106 @@ print(author_degrees)
 print(sum_authors/authors)
 print(median)
 
+
+# build collaboration_graph
+class Graph:
+    def __init__(self):
+        self.nodes = {}
+
+    def add_node(self, node):
+        self.nodes[node.label] = node
+
+    def add_edge(self, label1, label2):
+        self.nodes[label1].add_neighbour(self.nodes[label2])
+        self.nodes[label2].add_neighbour(self.nodes[label1])
+
+    def count_edges(self):
+        edges = 0
+        for item in self.nodes.items():
+            edges = edges + len(item[1].neighbours)
+        return int(edges/2)
+
+    def degrees_distribution(self):
+        distribution = {}
+        sum = 0
+        for item in self.nodes.items():
+            distribution[item[1].number_of_neighbours()] = distribution.get(item[1].number_of_neighbours(), 0) + 1
+            sum = sum + len(item[1].neighbours)
+        ordered_distribution = collections.OrderedDict(sorted(distribution.items()))
+        average = sum / self.count_vertices()
+        list_of_degrees = []
+        for item in ordered_distribution:
+            for i in range(ordered_distribution[item]):
+                list_of_degrees.append(item)
+
+        temp = len(list_of_degrees)
+        if temp % 2 == 1:
+            median = list_of_degrees[(temp - 1)/2 + 1]
+        else:
+            index = int(temp/2)
+            median = (list_of_degrees[index] + list_of_degrees[index + 1]) / 2
+
+        return (ordered_distribution, average, median)
+
+    def count_vertices(self):
+        return len(self.nodes.items())
+
+    def density(self):
+        return (2 * self.count_edges()) / (self.count_vertices() * (self.count_vertices() - 1))
+
+    def count_inconsistent_subgraphs(self):
+        visited = set()
+        subgraphs = 0
+        while len(visited) != len(self.nodes):
+            for node in self.nodes.items():
+                if not visited.__contains__(node[0]):
+                    visited = self.bfs(node[1], visited)
+                    subgraphs = subgraphs + 1
+        return subgraphs
+
+    def bfs(self, starting_node, visited):
+        q = queue.Queue()
+        q.put(starting_node)
+        visited.add(starting_node.label)
+        while not q.empty():
+            v = q.get()
+            for node in v.neighbours:
+                if not visited.__contains__(node.label):
+                    visited.add(node.label)
+                    q.put(self.nodes[node.label])
+
+        return visited
+
+
+
+class Node:
+    def __init__(self, label):
+        self.label = label
+        self.neighbours = set()
+
+    def add_neighbour(self, neighbour):
+        self.neighbours.add(neighbour)
+
+    def number_of_neighbours(self):
+        return len(self.neighbours)
+
+
+graph = Graph()
+for author in authors_degrees:
+    graph.add_node(Node(author))
+
+for row in data:
+    for i in range(len(row[1])):
+        for j in range(i+1, len(row[1])):
+            graph.add_edge(row[1][i], row[1][j])
+
+print("Collaboration graph: density, degree distribution, average degree, median degree")
+print(graph.density())
+(distribution, average, median) = graph.degrees_distribution()
+print(distribution)
+print(average)
+print(median)
+
+subgraphs = graph.count_inconsistent_subgraphs()
+print("Number of subgraphs")
+print(subgraphs)
