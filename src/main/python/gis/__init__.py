@@ -93,7 +93,7 @@ class Graph:
             distribution[item[1].number_of_neighbours()] = distribution.get(item[1].number_of_neighbours(), 0) + 1
             sum = sum + len(item[1].neighbours)
         ordered_distribution = collections.OrderedDict(sorted(distribution.items()))
-        average = sum / self.count_vertices()
+        average = sum / (2 * self.count_vertices())
         list_of_degrees = []
         for item in ordered_distribution:
             for i in range(ordered_distribution[item]):
@@ -116,32 +116,50 @@ class Graph:
 
     def count_inconsistent_subgraphs(self):
         visited = set()
+        previous_visited = len(visited)
+        size_distribution = {}
         subgraphs = 0
+        max_size = 0
         while len(visited) != len(self.nodes):
             for node in self.nodes.items():
                 if not visited.__contains__(node[0]):
-                    visited = self.bfs(node[1], visited)
+                    (visited, dist) = self.bfs(node[1], visited)
                     subgraphs = subgraphs + 1
-        return subgraphs
+                    size = len(visited) - previous_visited
+                    previous_visited = len(visited)
+                    if size > max_size:
+                        max_size = size
+                        biggest_start_node = node
+                    size_distribution[size] = size_distribution.get(size, 0) + 1
+
+        ordered_distribution = collections.OrderedDict(sorted(size_distribution.items()))
+        return (subgraphs, ordered_distribution, biggest_start_node)
 
     def bfs(self, starting_node, visited):
         q = queue.Queue()
         q.put(starting_node)
         visited.add(starting_node.label)
+        distance = {}
+        distance[starting_node.label] = 0
         while not q.empty():
             v = q.get()
             for node in v.neighbours:
                 if not visited.__contains__(node.label):
+                    distance[node.label] = distance[v.label] + 1
                     visited.add(node.label)
                     q.put(self.nodes[node.label])
-
-        return visited
+        ordered_distance = collections.OrderedDict(sorted(distance.items()))
+        return (visited, ordered_distance)
 
     def clasterization_factor(self):
         sum = 0
+        clasterization_distribution = {}
         for node in self.nodes:
-            sum = sum + self.clasterization_for_node(self.nodes[node])
-        return sum / self.count_vertices()
+            temp = self.clasterization_for_node(self.nodes[node])
+            clasterization_distribution[temp] = clasterization_distribution.get(temp, 0) + 1
+            sum = sum + temp
+        ordered_distribution = collections.OrderedDict(sorted(clasterization_distribution.items()))
+        return (sum / self.count_vertices(), ordered_distribution)
 
     def clasterization_for_node(self, node):
         if node.number_of_neighbours() < 2:
@@ -199,13 +217,23 @@ print(distribution)
 print(average)
 print(median)
 
-subgraphs = graph.count_inconsistent_subgraphs()
+(subgraphs, subgraphs_distribution, biggest_start_node) = graph.count_inconsistent_subgraphs()
 print("Number of subgraphs")
 print(subgraphs)
+print(subgraphs_distribution)
+print(biggest_start_node[0])
+(visited, distance) = graph.bfs(biggest_start_node[1], set())
+dist = {}
+for item in distance:
+    dist[distance[item]] = dist.get(distance[item], 0) + 1
+print(dist)
 
-clasterization = graph.clasterization_factor()
+(clasterization, clasterization_distribution) = graph.clasterization_factor()
 print("Clasterization factor")
 print(clasterization)
+print(clasterization_distribution)
+# for item in clasterization_distribution:
+#     print("{item},{count}".format(item=item, count=clasterization_distribution[item]))
 
 clasterization4 = graph.clasterization_factor_4()
 print("Clasterization factor for vertices with degree at least 4")
