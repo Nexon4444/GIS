@@ -2,10 +2,18 @@ import numpy as np
 import queue
 import collections
 
-b = np.loadtxt(r'data.csv', dtype=str, delimiter='|', skiprows=1, usecols=np.r_[0:2])
-data = []
+b = np.loadtxt(r'data.csv', dtype=str, delimiter='|', skiprows=1, usecols=np.r_[0:3])
+data1 = []
 for row in b:
-    data.append((row[0], row[1].split("; ")))
+    data1.append((row[0], row[1].split("; "), row[2].split("; ")))
+
+data = []
+for row in data1:
+    filtered = []
+    for i in range(0, len(row[1])):
+        if "AGH" in row[2][i]:
+            filtered.append(row[1][i])
+    data.append((row[0], filtered))
 
 publication_degrees = {}
 
@@ -25,7 +33,7 @@ for item in ordered_publication_degrees:
         pub_degrees.append(item)
 
 if publications % 2 == 1:
-    median = pub_degrees[(publications - 1)/2 + 1]
+    median = pub_degrees[int((publications - 1)/2 + 1)]
 else:
     index = int(publications/2)
     median = (pub_degrees[index] + pub_degrees[index + 1]) / 2
@@ -93,7 +101,7 @@ class Graph:
             distribution[item[1].number_of_neighbours()] = distribution.get(item[1].number_of_neighbours(), 0) + 1
             sum = sum + len(item[1].neighbours)
         ordered_distribution = collections.OrderedDict(sorted(distribution.items()))
-        average = sum / (2 * self.count_vertices())
+        average = sum / (self.count_vertices())
         list_of_degrees = []
         for item in ordered_distribution:
             for i in range(ordered_distribution[item]):
@@ -101,7 +109,7 @@ class Graph:
 
         temp = len(list_of_degrees)
         if temp % 2 == 1:
-            median = list_of_degrees[(temp - 1)/2 + 1]
+            median = list_of_degrees[int((temp - 1)/2 + 1)]
         else:
             index = int(temp/2)
             median = (list_of_degrees[index] + list_of_degrees[index + 1]) / 2
@@ -127,7 +135,7 @@ class Graph:
                     subgraphs = subgraphs + 1
                     size = len(visited) - previous_visited
                     previous_visited = len(visited)
-                    if size > max_size:
+                    if size >= max_size:
                         max_size = size
                         biggest_start_node = node
                     size_distribution[size] = size_distribution.get(size, 0) + 1
@@ -181,12 +189,15 @@ class Graph:
         return sum / count_nodes
 
     def clasterization_factor_for(self, labels):
+        distribution = []
         if len(labels) == 0:
             return 0
         sum = 0
         for label in labels:
-            sum = sum + self.clasterization_for_node(self.nodes[label])
-        return sum / len(labels)
+            temp = self.clasterization_for_node(self.nodes[label])
+            sum = sum + temp
+            distribution.append((label, temp))
+        return (sum / len(labels), distribution)
 
 
 class Node:
@@ -224,8 +235,11 @@ print(subgraphs_distribution)
 print(biggest_start_node[0])
 (visited, distance) = graph.bfs(biggest_start_node[1], set())
 dist = {}
-for item in distance:
-    dist[distance[item]] = dist.get(distance[item], 0) + 1
+print(visited)
+for item in visited:
+    (visited1, distance) = graph.bfs(biggest_start_node[1], set())
+    for item in distance:
+        dist[distance[item]] = dist.get(distance[item], 0) + 1
 print(dist)
 
 (clasterization, clasterization_distribution) = graph.clasterization_factor()
@@ -240,6 +254,7 @@ print("Clasterization factor for vertices with degree at least 4")
 print(clasterization4)
 
 top25 = list(ordered_authors_degrees.keys())[-25:]
-clasterization_top25 = graph.clasterization_factor_for(top25)
+(clasterization_top25, top25_distribution) = graph.clasterization_factor_for(top25)
 print("Clasterization factor for top 25 authors")
 print(clasterization_top25)
+print(top25_distribution)
