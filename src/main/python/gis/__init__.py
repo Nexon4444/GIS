@@ -135,13 +135,29 @@ class Graph:
                     subgraphs = subgraphs + 1
                     size = len(visited) - previous_visited
                     previous_visited = len(visited)
-                    if size >= max_size:
+                    if size > max_size:
                         max_size = size
                         biggest_start_node = node
                     size_distribution[size] = size_distribution.get(size, 0) + 1
 
         ordered_distribution = collections.OrderedDict(sorted(size_distribution.items()))
         return (subgraphs, ordered_distribution, biggest_start_node)
+
+    def distance(self, label1, label2):
+        q = queue.Queue()
+        q.put(self.nodes[label1])
+        visited = set()
+        visited.add(label1)
+        distance = {}
+        distance[label1] = 0
+        while not q.empty():
+            v = q.get()
+            for node in v.neighbours:
+                if not visited.__contains__(node.label):
+                    distance[node.label] = distance[v.label] + 1
+                    visited.add(node.label)
+                    q.put(self.nodes[node.label])
+        return distance[label2]
 
     def bfs(self, starting_node, visited):
         q = queue.Queue()
@@ -236,10 +252,10 @@ print(biggest_start_node[0])
 (visited, distance) = graph.bfs(biggest_start_node[1], set())
 dist = {}
 print(visited)
-for item in visited:
-    (visited1, distance) = graph.bfs(biggest_start_node[1], set())
-    for item in distance:
-        dist[distance[item]] = dist.get(distance[item], 0) + 1
+for i in range(len(list(visited))-1):
+    for j in range(i + 1, len(list(visited))):
+        distance = graph.distance(list(visited)[i], list(visited)[j])
+        dist[distance] = dist.get(distance, 0) + 1
 print(dist)
 
 (clasterization, clasterization_distribution) = graph.clasterization_factor()
