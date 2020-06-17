@@ -144,19 +144,7 @@ class Graph:
         return (subgraphs, ordered_distribution, biggest_start_node)
 
     def distance(self, label1, label2):
-        q = queue.Queue()
-        q.put(self.nodes[label1])
-        visited = set()
-        visited.add(label1)
-        distance = {}
-        distance[label1] = 0
-        while not q.empty():
-            v = q.get()
-            for node in v.neighbours:
-                if not visited.__contains__(node.label):
-                    distance[node.label] = distance[v.label] + 1
-                    visited.add(node.label)
-                    q.put(self.nodes[node.label])
+        (visited, distance) = self.bfs(self.nodes[label1], set())
         return distance[label2]
 
     def bfs(self, starting_node, visited):
